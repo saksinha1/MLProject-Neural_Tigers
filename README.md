@@ -1,5 +1,8 @@
 # MLProject-Neural_Tigers
 
+## Dataset 
+http://yann.lecun.com/exdb/mnist/
+
 ## Setting up the virtual environment
 Make sure you are inside this project's directory. For this project assignment we will be using vanv because 
 venv creates virtual environments in the shell that are fresh and sandboxed, with user-installable libraries, and it's multi-python safe.
