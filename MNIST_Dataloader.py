@@ -1,14 +1,14 @@
 import numpy as np # linear algebra
 import struct
 from array import array
-from os.path import join
+import matplotlib.pyplot as plt
 
 class MNIST_Dataloader: 
     def __init__(self): 
-        self.training_labels_path = "./Data/train_labels_idx3-ubyte"
-        self.training_images_path = "./Data/train-images-idx3-ubyte"
-        self.test_labels_path = "./Data/t10k-labels-idx1-ubyte"
-        self.test_images_path = "./Data/t10k-images-idx3-ubyte"
+        self.training_labels_path = "./data/train-images-idx3-ubyte"
+        self.training_images_path = "./data/train-labels-idx1-ubyte"
+        self.test_labels_path = "data/t10k-labels-idx1-ubyte"
+        self.test_images_path = "data/t10k-images-idx3-ubyte"
         
 
     def read_image_labels(self, labels_path, images_path): 
@@ -33,12 +33,30 @@ class MNIST_Dataloader:
         return images, labels
 
     def get_test_data(self):
-        x_test, y_test = self.read_images_labels(self.test_images_path, self.test_labels_path)
+        x_test, y_test = self.read_image_labels(self.test_images_path, self.test_labels_path)
         return x_test, y_test
 
     def get_train_data(self):
-        x_train, y_train = self.read_images_labels(self.training_images_path, self.training_labels_path)
+        x_train, y_train = self.read_image_labels(self.training_images_path, self.training_labels_path)
         return x_train, y_train
+
+    def show_images(self, rows, cols ): 
+        # TODO: Change this to show either train or test
+        images, titles = self.get_train_data()
+
+        plt.figure(figsize=(30,20))
+        index = 1
+        for x in zip(images, titles):
+            image = x[0]
+            titles[1]
+            plt.subplot(rows, cols, index)        
+        plt.imshow(images, cmap=plt.cm.gray)
+        if (titles != ''):
+            plt.title(titles, fontsize = 15);        
+        index += 1
+
+
+
 
 
 
