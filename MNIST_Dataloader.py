@@ -43,17 +43,28 @@ class MNIST_Dataloader:
     def show_images(self, rows, cols ): 
         # TODO: Change this to show either train or test
         images, titles = self.get_train_data()
+        cols = 5
+        rows = int(len(images)/cols) + 1
 
         plt.figure(figsize=(30,20))
         index = 1
         for x in zip(images, titles):
             image = x[0]
             titles[1]
-            plt.subplot(rows, cols, index)        
-        plt.imshow(images, cmap=plt.cm.gray)
-        if (titles != ''):
-            plt.title(titles, fontsize = 15);        
-        index += 1
+            plt.subplot(index)        
+            plt.imshow(image, cmap=plt.cm.gray)
+            if (titles != ''):
+                plt.title(titles, fontsize = 15);        
+            index += 1
+
+        plt.show()
+        
+    def simple_show(self):
+        images, _ = self.get_train_data()
+        for i in range(9):  
+            plt.subplot(330+1 + i)
+            plt.imshow(images[i], cmap=plt.get_cmap('gray'))
+        plt.show()
 
 
 
