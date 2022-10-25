@@ -43,15 +43,14 @@ class MNIST_Dataloader:
     def show_images(self, rows, cols ): 
         # TODO: Change this to show either train or test
         images, titles = self.get_train_data()
-        cols = 5
+        cols = 7
         rows = int(len(images)/cols) + 1
-
-        plt.figure(figsize=(30,20))
+        print(rows)
         index = 1
         for x in zip(images, titles):
             image = x[0]
             titles[1]
-            plt.subplot(index)        
+            plt.subplot(rows, cols, index)        
             plt.imshow(image, cmap=plt.cm.gray)
             if (titles != ''):
                 plt.title(titles, fontsize = 15);        
