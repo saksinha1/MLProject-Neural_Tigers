@@ -60,6 +60,12 @@ class MNIST_Dataloader:
         x_train, y_train = self.read_image_labels(self.training_images_path, self.training_labels_path)
         return x_train, y_train
 
+    def get_image_shape(self):
+        # TODO: Change this to show either train or test images
+        with open(self.training_images_path, 'rb') as images_file:
+            magic, size, rows, cols = struct.unpack(">IIII", images_file.read(16))
+        return rows, cols
+
     def show_images(self, rows, cols ): 
         # TODO: Change this to show either train or test
         images, labels = self.get_train_data()
@@ -75,8 +81,6 @@ class MNIST_Dataloader:
             if index == rows*cols:              # stop adding images when full
                 break    
             index += 1
-
-            
 
         plt.show()
         
