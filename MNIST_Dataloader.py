@@ -33,6 +33,7 @@ class MNIST_Dataloader:
         # open image file 
         #   extract first 16 bytes with file info
         #   extract rest to simple 1D array of len 60k * 784
+        #       each element holds grayscale value
         with open(images_path, 'rb') as images_file:
             magic, size, rows, cols = struct.unpack(">IIII", images_file.read(16))     
             image_data = array("B", images_file.read())
@@ -43,12 +44,10 @@ class MNIST_Dataloader:
 
         # get 784 element segments from stream and put in numpy array
         # reshape numpy array to be 28x28 matrix representing pixel grid of img
-        # put 
+        # put matrix in previously init'd array
         for i in range(size): 
             image = np.array(image_data[i*rows*cols: (i+1)*rows*cols])
             image = image.reshape(28, 28)
-            print(len(image))
-            print(len(images[i][:]))
             images[i][:] = image
 
         return images, labels
@@ -63,19 +62,21 @@ class MNIST_Dataloader:
 
     def show_images(self, rows, cols ): 
         # TODO: Change this to show either train or test
-        images, titles = self.get_train_data()
-        cols = 7
-        rows = int(len(images)/cols) + 1
-        print(rows)
+        images, labels = self.get_train_data()
         index = 1
-        for x in zip(images, titles):
+        for x in zip(images, labels):
             image = x[0]
-            titles[1]
-            plt.subplot(rows, cols, index)        
-            plt.imshow(image, cmap=plt.cm.gray)
-            if (titles != ''):
-                plt.title(titles, fontsize = 15);        
+            label = x[1]
+            plt.subplot(rows, cols, index)      # map out the number of suplots  
+            plt.tight_layout(pad=1)             # pad the image for titles
+            plt.imshow(image, cmap="gray")      # set image matrix to grayscale
+            if (labels != ''):
+                plt.title(label, fontsize = 10) # provide plot for title    
+            if index == rows*cols:              # stop adding images when full
+                break    
             index += 1
+
+            
 
         plt.show()
         
