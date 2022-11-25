@@ -26,19 +26,15 @@ class NeuralNetwok:
         
         return [layer1, layer2]
     
-    def desired_array_out(self, labels_array):
+    def desired_array_out(self, label):
         '''Turn label into desired output array 
         input label         5
         return desire array [0 0 0 0 0 1 0 0 0 0]
         '''
         desired_array = np.zeros(self.output_size, np.float32)
-        desired_array[labels_array[0]] = 1
+        desired_array[label] = 1
         
         return desired_array
-
-def init(x,y):
-    layer=np.random.uniform(-1.,1.,size=(x,y))/np.sqrt(x*y)
-    return layer.astype(np.float32)
 
 #Sigmoid funstion
 def sigmoid(x):
@@ -78,10 +74,6 @@ def forward_backward_pass(x,y):
     update_l1=x.T@error
 
     return out,update_l1,update_l2
-
-np.random.seed(42)
-l1=init(28*28,128)
-l2=init(128,10)
 
 def main():
     # dataloader = MNIST_Dataloader()
