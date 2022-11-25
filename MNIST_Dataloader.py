@@ -4,30 +4,51 @@ from array import array
 import matplotlib.pyplot as plt
 
 class MNIST_Dataloader: 
+    '''
+    http://yann.lecun.com/exdb/mnist/
+    '''
     def __init__(self): 
         self.training_labels_path = "./data/train-images-idx3-ubyte"
         self.training_images_path = "./data/train-labels-idx1-ubyte"
         self.test_labels_path = "data/t10k-labels-idx1-ubyte"
         self.test_images_path = "data/t10k-images-idx3-ubyte"
         
+    '''
+    open label file and open image file with their file paths
 
+    return 60k label element array (each element is 0-9 numeric label)
+        and 60k image element array (each element 28x28 matrix pixel grid)
+    '''
     def read_image_labels(self, labels_path, images_path): 
         labels = []
         images = []
+
+        # open labels file 
+        #   extract first 8 bytes with file info
+        #   extract remaining bytes to array and turn them to # value from byte
         with open(labels_path, 'rb') as labels_file:
-            magic, size = struct.unpack(">II", labels_file.read(8))
-            labels_data = array("B", labels_file.read())
+            magic, size = struct.unpack(">II", labels_file.read(8)) 
+            labels = array("B", labels_file.read())                 
 
+        # open image file 
+        #   extract first 16 bytes with file info
+        #   extract rest to simple 1D array of len 60k * 784
         with open(images_path, 'rb') as images_file:
-            magic, size, rows, cols = struct.unpack(">IIII", images_file.read(16))
+            magic, size, rows, cols = struct.unpack(">IIII", images_file.read(16))     
             image_data = array("B", images_file.read())
-
+            
+        # initialize empty 60k len array with entries of a 784 element arrays
         for i in range(size):
             images.append([0] * rows * cols)
 
+        # get 784 element segments from stream and put in numpy array
+        # reshape numpy array to be 28x28 matrix representing pixel grid of img
+        # put 
         for i in range(size): 
             image = np.array(image_data[i*rows*cols: (i+1)*rows*cols])
             image = image.reshape(28, 28)
+            print(len(image))
+            print(len(images[i][:]))
             images[i][:] = image
 
         return images, labels
