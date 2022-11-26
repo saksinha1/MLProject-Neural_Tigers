@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from MNIST_Dataloader import MNIST_Dataloader
+#testing fork
 
 class NeuralNetwok: 
     def __init__(self, input_size=28*28, output_size=10, h_layers=1, h_neurons_per_layer=128):
