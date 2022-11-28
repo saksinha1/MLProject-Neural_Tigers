@@ -6,16 +6,16 @@ from MNIST_Dataloader import MNIST_Dataloader
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 
-lr = 0.05 #learning rate
+lr = 0.5 #learning rate
 dbg = 0
 pred_dbg = 0
 class NeuralNetwork:
-    def __init__(self, input_size=28*28, output_size=10, h_layers=1, h_neurons_per_layer=128):
+    def __init__(self, input_size=28*28, output_size=10, h_layers=2, h_neurons_per_layer=128):
         self.input_size = input_size
         self.output_size = output_size
         self.h_layers = h_layers
         self.h_neurons_per_layer = h_neurons_per_layer
-        self.layers = self.init_layers(input_size, h_neurons_per_layer, output_size)
+        self.layers = self.init_layers(input_size, h_neurons_per_layer, h_layers, output_size)
 
     # TODO: implement a programmable amount of hidden layer initialization
     def init_layers(self, input_size, h_neurons_per_layer, h_layers, output_size):
@@ -33,13 +33,13 @@ class NeuralNetwork:
 
         layer_in = np.random.randn(input_size, h_neurons_per_layer)
 
-        #hlayers = []
-        #for i in range(0,h_layers):
-        #    hlayers[i] = np.random.randn(h_neurons_per_layer, h_neurons_per_layer)
+        hl = []
+        for i in range(0, h_layers):
+            hl.append(np.random.randn(h_neurons_per_layer, h_neurons_per_layer))
 
         layer_out = np.random.randn(h_neurons_per_layer, output_size)
         
-        return [layer_in,  layer_out]
+        return [layer_in, hl, layer_out]
     
     def desired_array_out(self, label):
         '''Turn label into desired output array 
@@ -98,13 +98,15 @@ def d_softmax(x):
 
 
     #forward and backward pass
-def forward_backward_pass(x,y,nn,l1,l2):
+def forward_backward_pass(x,y,nn,l_in,hl,l_out):
     targets = np.zeros((len(y),10), np.float32)
     targets[range(targets.shape[0]),y] = 1
 
 
-    x_sigmoid = np.zeros(l2.shape[0], np.float32)
-
+    x_sigmoid = np.zeros(l_out.shape[0], np.float32)
+    x_sigmoid_hl = []
+    for i in range(0,nn.h_layers):
+        x_sigmoid_hl.append(np.zeros(l_in.shape[1], np.float32))
     # forward pass
     for i in range(0,len(x)):
         #if i%50000 == 0:
@@ -112,91 +114,74 @@ def forward_backward_pass(x,y,nn,l1,l2):
         x_i=x[i]
         y_i=nn.desired_array_out(y[i])
         if dbg:
-            print('l1 shape = {}'.format(l1.shape))
+            print('l1 shape = {}'.format(l_in.shape))
             #print(l1.shape[0])
             #print(l1.shape[1])
-            print('l2 shape = {}'.format(l2.shape))
+            print('l2 shape = {}'.format(l_out.shape))
             #print(l2.shape[0])
             #print(l2.shape[1])
             #print(x_i)
         #for layer_i in range(0,l1.shape[0]):
             #neuron = l1[layer_i]
-        x_l1 = np.dot(l1.T,np.array(x_i).flatten())
+        x_l_in = np.dot(l_in.T,np.array(x_i).flatten())
         if dbg:
-            print('x_l1 shape={}'.format(x_l1.shape))
-        x_sigmoid = sigmoid(x_l1)
+            print('x_l1 shape={}'.format(x_l_in.shape))
+        x_in_sigmoid = sigmoid(x_l_in)
+        for hl_index in range(0, nn.h_layers):
+            #print('hl_index=',str(hl_index))
+            if hl_index == 0:
+                x_sigmoid_hl[hl_index] = hl[hl_index].T@x_in_sigmoid
+            else:
+                x_sigmoid_hl[hl_index] = hl[hl_index].T @ x_sigmoid_hl[hl_index-1]
         if dbg:
             print('x_sigmoid shape={}'.format(x_sigmoid.shape))
 
-        x_l2 = np.dot(x_sigmoid.T, l2)
+        x_l_out = np.dot(x_sigmoid_hl[hl_index].T, l_out)
         if dbg:
-            print('x_l2 shape={}'.format(x_l2.shape))
-        out = softmax(x_l2)
+            print('x_l_out shape={}'.format(x_l_out.shape))
+        out = softmax(x_l_out)
         if dbg:
             print('out shape={}'.format(out.shape))
             print('out={}'.format(out))
 
-        error=y_i-out
+        error = y_i-out
+        #backward pass
+
         #print('error={}'.format(error))
-        delta2 = lr * error * d_softmax(x_l2)
+        delta_out = error * d_softmax(x_l_out)
         if dbg:
-            print('delta2={}'.format(delta2))
-            print('before updation l2 sum={}'.format(np.sum(l2)))
+            print('delta2={}'.format(delta_out))
+            print('before updation l2 sum={}'.format(np.sum(l_out)))
             #print('x_sigmoid shape={}'.format(x_sigmoid.shape))
-            print('delta2.T shape={}'.format(delta2.T.shape))
+            print('delta2.T shape={}'.format(delta_out.T.shape))
             #print(delta2[:,None])
             #print(x_sigmoid[:,None])
-        l2 = np.add(l2, np.outer(x_sigmoid,delta2))#delta2.T * x_sigmoid)
+        l_out = np.add(l_out, np.outer(x_sigmoid_hl[nn.h_layers-1],lr*delta_out))#delta2.T * x_sigmoid)
         if dbg:
-            print('after updation l2 sum={}'.format(np.sum(l2)))
+            print('after updation l2 sum={}'.format(np.sum(l_out)))
 
             #delta1 = ((l2[:, neuron_i]).dot(error.T)).T * d_sigmoid(x_l1)
-            print('d_sigmoid(x_l1) shape={}'.format(d_sigmoid(x_l1).shape))
-        delta1 = ((l2).dot(error.T)).T * d_sigmoid(x_l1)
+            print('d_sigmoid(x_l1) shape={}'.format(d_sigmoid(x_l_in).shape))
+        for hl_index in reversed(range(0,nn.h_layers)):
+            if hl_index == nn.h_layers-1:
+                delta_hl = ((l_out).dot(error.T)).T * d_sigmoid(x_sigmoid_hl[hl_index])
+                hl[hl_index] = np.add(hl[hl_index],lr*delta_hl)
+            else:
+                #print(hl[hl_index+1].shape)
+                delta_hl = ((hl[hl_index+1]).dot(delta_hl.T)).T * d_sigmoid(x_sigmoid_hl[hl_index])
+                hl[hl_index] = np.add(hl[hl_index], lr * delta_hl)
+        #delta_in = ((l_out).dot(error.T)).T * d_sigmoid(x_l_in)
+        delta_in = ((hl[0]).dot(delta_hl.T)).T * d_sigmoid(x_l_in)
         if dbg:
-            print('delta1 shape={}'.format(delta1.shape))
+            print('delta1 shape={}'.format(delta_in.shape))
             print('x_i.T shape={}'.format((np.array(x_i).flatten()).T.shape))
         #l1 = np.add(l1, x.T @ delta1)
         #l1 = np.add(l1, (np.array(x_i).flatten()).T@delta1)
-        l1 = np.add(l1, np.outer(np.array(x_i).flatten(),delta1))
-        #print('l1 = ',l1)
-        '''for neuron_i in range(0,l1.shape[1]):
-            neuron = l1[:,neuron_i]
-            #print(len(neuron))
-            #print(len(np.array(x_i).flatten()))
-            x_l1 = np.dot(neuron,np.array(x_i).flatten())
-            x_sigmoid[neuron_i]=sigmoid(x_l1)
+        l_in = np.add(l_in, np.outer(np.array(x_i).flatten(),lr*delta_in))
 
-            #print(len(x_sigmoid),len(l2[:,neuron_i]))
-            x_l2=np.dot(x_sigmoid,l2[:,neuron_i])
-            print(x_l2)
-            out=softmax(x_l2)
-            print(out)
+    return out,l_in,hl,l_out
 
-            error = out-y_i
-            print('out={} y_i={} error={}'.format(out, y_i, error))
-            # backpropogation l2
-            delta2 = error*d_softmax(x_l2)
-            print('delta2={}'.format(delta2))
-            print('before updation l2[:,neuron_i][0] = {}, sum={}'.format(l2[:,neuron_i][0], np.sum(l2[:,neuron_i])))
-            l2[:,neuron_i] = np.add(l2[:,neuron_i],delta2*x_sigmoid)
-            print('after updation l2[:,neuron_i][0] = {}, sum={}'.format(l2[:, neuron_i][0],np.sum(l2[:,neuron_i])))
-            #print('')
-            #error=2*(out-targets)/out.shape[0]*d_softmax(x_l2)
-            #update_l2=x_sigmoid.T@error
-
-            #backpropogation l1
-            delta1=((l2[:,neuron_i]).dot(error.T)).T*d_sigmoid(x_l1)
-            print('delta1 shape={}'.format(delta1.shape))
-            #print('delta1={}'.format(delta1))
-            l1[:,neuron_i] = np.add(l1[:,neuron_i],delta1)
-            #update_l1=x.T@error'''
-        #if i>10:
-        #    exit(0)
-    #print('l2={}'.format(l2))
-    return out,l1,l2
-
-def predict(x,y,nn,l1,l2,y_test,y_pred):
+def predict(x,y,nn,l1,hl,l2,y_test,y_pred):
     targets = np.zeros((len(y),10), np.float32)
     targets[range(targets.shape[0]),y] = 1
 
@@ -250,15 +235,16 @@ def main():
 
     #print(nn.desired_array_out([3]))
     #print(nn.desired_array_out([9]))
-    l1 = nn.layers[0]
+    l_in = nn.layers[0]
     # print(l1)
-    l2 = nn.layers[1]
+    hl = nn.layers[1]
+    l_out = nn.layers[2]
 
     print('training started...')
-    total_epochs = 8
+    total_epochs = 2
     for epoch in range(0,total_epochs):
         print('epoch={}'.format(epoch))
-        out,l1,l2 = forward_backward_pass(x_train,y_train,nn,l1,l2)
+        out,l_in,hl,l_out = forward_backward_pass(x_train,y_train,nn,l_in,hl,l_out)
         #print('l2={}'.format(l2))
 
     y_test = []
@@ -266,7 +252,7 @@ def main():
 
 
     print('validation started...')
-    predict(x_train,y_train,nn,l1,l2,y_test,y_pred)
+    predict(x_train,y_train,nn,l_in,hl,l_out,y_test,y_pred)
     cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm,
                          index=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
