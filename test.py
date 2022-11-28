@@ -6,11 +6,11 @@ from MNIST_Dataloader import MNIST_Dataloader
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 
-lr = 0.5 #learning rate
+lr = 0.01 #learning rate
 dbg = 0
-pred_dbg = 0
+pred_dbg = 1
 class NeuralNetwork:
-    def __init__(self, input_size=28*28, output_size=10, h_layers=2, h_neurons_per_layer=128):
+    def __init__(self, input_size=28*28, output_size=10, h_layers=1, h_neurons_per_layer=3):
         self.input_size = input_size
         self.output_size = output_size
         self.h_layers = h_layers
@@ -181,36 +181,55 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
 
     return out,l_in,hl,l_out
 
-def predict(x,y,nn,l1,hl,l2,y_test,y_pred):
+def predict(x,y,nn,l_in,hl,l_out,y_test,y_pred):
     targets = np.zeros((len(y),10), np.float32)
     targets[range(targets.shape[0]),y] = 1
 
 
-    x_sigmoid = np.zeros(l2.shape[0], np.float32)
+    x_sigmoid = np.zeros(l_out.shape[0], np.float32)
 
+    x_sigmoid = np.zeros(l_out.shape[0], np.float32)
+    x_sigmoid_hl = []
+    for i in range(0,nn.h_layers):
+        x_sigmoid_hl.append(np.zeros(l_in.shape[1], np.float32))
     # forward pass
-    for i in range(0,len(x)):
-        #if i%50000 == 0:
+    for i in range(0, len(x)):
+        # if i%50000 == 0:
         #    print('i = {}'.format(i))
-        x_i=x[i]
+        x_i = x[i]
         y_test.append(y[i])
-        y_i=nn.desired_array_out(y[i])
-
-        x_l1 = np.dot(l1.T,np.array(x_i).flatten())
+        y_i = nn.desired_array_out(y[i])
         if dbg:
-            print('x_l1 shape={}'.format(x_l1.shape))
-        x_sigmoid = sigmoid(x_l1)
+            print('l1 shape = {}'.format(l_in.shape))
+            # print(l1.shape[0])
+            # print(l1.shape[1])
+            print('l2 shape = {}'.format(l_out.shape))
+            # print(l2.shape[0])
+            # print(l2.shape[1])
+            # print(x_i)
+        # for layer_i in range(0,l1.shape[0]):
+        # neuron = l1[layer_i]
+        x_l_in = np.dot(l_in.T, np.array(x_i).flatten())
+        if dbg:
+            print('x_l1 shape={}'.format(x_l_in.shape))
+        x_in_sigmoid = sigmoid(x_l_in)
+        for hl_index in range(0, nn.h_layers):
+            # print('hl_index=',str(hl_index))
+            if hl_index == 0:
+                x_sigmoid_hl[hl_index] = hl[hl_index].T @ x_in_sigmoid
+            else:
+                x_sigmoid_hl[hl_index] = hl[hl_index].T @ x_sigmoid_hl[hl_index - 1]
         if dbg:
             print('x_sigmoid shape={}'.format(x_sigmoid.shape))
 
-        x_l2 = np.dot(x_sigmoid.T, l2)
+        x_l_out = np.dot(x_sigmoid_hl[hl_index].T, l_out)
         if dbg:
-            print('x_l2 shape={}'.format(x_l2.shape))
-        out = softmax(x_l2)
+            print('x_l_out shape={}'.format(x_l_out.shape))
+        out = softmax(x_l_out)
         predicted_num = np.argmax(out)
         if pred_dbg:
             #print('out shape={}'.format(out.shape))
-            print('out={}'.format(out))
+            #print('out={}'.format(out))
             print('predicted_num={} actual_num={}'.format(predicted_num,y[i]))
             #print('y_i={}'.format(y_i))
         y_pred.append(predicted_num)
@@ -241,7 +260,7 @@ def main():
     l_out = nn.layers[2]
 
     print('training started...')
-    total_epochs = 2
+    total_epochs = 1
     for epoch in range(0,total_epochs):
         print('epoch={}'.format(epoch))
         out,l_in,hl,l_out = forward_backward_pass(x_train,y_train,nn,l_in,hl,l_out)
