@@ -6,11 +6,11 @@ from MNIST_Dataloader import MNIST_Dataloader
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 
-lr = 0.01 #learning rate
+lr = 0.1 #learning rate
 dbg = 0
 pred_dbg = 1
 class NeuralNetwork:
-    def __init__(self, input_size=28*28, output_size=10, h_layers=1, h_neurons_per_layer=3):
+    def __init__(self, input_size=28*28, output_size=10, h_layers=2, h_neurons_per_layer=3):
         self.input_size = input_size
         self.output_size = output_size
         self.h_layers = h_layers
@@ -31,13 +31,21 @@ class NeuralNetwork:
         layer2 = np.random.uniform(-1.,1.,size=(h_neurons_per_layer, output_size))\
             /np.sqrt(h_neurons_per_layer * output_size)'''
 
-        layer_in = np.random.randn(input_size, h_neurons_per_layer)
-
         hl = []
-        for i in range(0, h_layers):
-            hl.append(np.random.randn(h_neurons_per_layer, h_neurons_per_layer))
 
-        layer_out = np.random.randn(h_neurons_per_layer, output_size)
+        '''layer_in = np.random.rand(input_size, h_neurons_per_layer)
+
+        for i in range(0, h_layers):
+            hl.append(np.random.rand(h_neurons_per_layer, h_neurons_per_layer))
+
+        layer_out = np.random.rand(h_neurons_per_layer, output_size)'''
+
+        layer_in = np.random.uniform(-1.,1.,size=(input_size, h_neurons_per_layer))
+
+        for i in range(0, h_layers):
+            hl.append(np.random.uniform(-1.,1.,size=(h_neurons_per_layer, h_neurons_per_layer)))
+
+        layer_out = np.random.uniform(-1.,1.,size=(h_neurons_per_layer, output_size))
         
         return [layer_in, hl, layer_out]
     
@@ -79,19 +87,19 @@ def d_sigmoid(x):
 
 #Softmax
 def softmax(x):
-    x = [-5. if ele < -100.0 else ele for ele in x]
-    x = [5. if ele > 100.0 else ele for ele in x]
-    x = np.array(x)
-    exp_element = np.exp(x -x.max())
+    x_modified = [-5. if ele < -100.0 else ele for ele in x]
+    x_modified = [5. if ele > 100.0 else ele for ele in x_modified]
+    x_modified = np.array(x_modified)
+    exp_element = np.exp(x_modified - x_modified.max())
     #exp_element=np.exp(x)#-x.max())
     return exp_element/np.sum(exp_element,axis=0)
 
 #derivative of softmax
 def d_softmax(x):
-    x = [-5. if ele < -100.0 else ele for ele in x]
-    x = [5. if ele > 100.0 else ele for ele in x]
-    x = np.array(x)
-    exp_element = np.exp(x -x.max())
+    x_modified = [-5. if ele < -100.0 else ele for ele in x]
+    x_modified = [5. if ele > 100.0 else ele for ele in x_modified]
+    x_modified = np.array(x_modified)
+    exp_element = np.exp(x_modified -x_modified.max())
     #exp_element=np.exp(x)#-x.max())
     sigma = exp_element/np.sum(exp_element,axis=0)
     return (sigma)*(1-sigma)
@@ -125,8 +133,12 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
             #neuron = l1[layer_i]
         x_l_in = np.dot(l_in.T,np.array(x_i).flatten())
         if dbg:
-            print('x_l1 shape={}'.format(x_l_in.shape))
+            print('x_l_in shape={}'.format(x_l_in.shape))
+            print('x_l_in={}'.format(x_l_in))
         x_in_sigmoid = sigmoid(x_l_in)
+        if dbg:
+            print('x_in_sigmoid shape={}'.format(x_in_sigmoid.shape))
+            print('x_in_sigmoid={}'.format(x_in_sigmoid))
         for hl_index in range(0, nn.h_layers):
             #print('hl_index=',str(hl_index))
             if hl_index == 0:
@@ -134,12 +146,19 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
             else:
                 x_sigmoid_hl[hl_index] = hl[hl_index].T @ x_sigmoid_hl[hl_index-1]
         if dbg:
+            for hl_index in range(0, nn.h_layers):
+                print('x_sigmoid_hl['+str(hl_index)+'] shape={}'.format(x_sigmoid_hl[hl_index].shape))
+                print('x_sigmoid_hl['+str(hl_index)+']={}'.format(x_sigmoid_hl[hl_index]))
+        if dbg:
             print('x_sigmoid shape={}'.format(x_sigmoid.shape))
 
         x_l_out = np.dot(x_sigmoid_hl[hl_index].T, l_out)
         if dbg:
             print('x_l_out shape={}'.format(x_l_out.shape))
+            print('x_l_out={}'.format(x_l_out))
         out = softmax(x_l_out)
+
+
         if dbg:
             print('out shape={}'.format(out.shape))
             print('out={}'.format(out))
@@ -156,8 +175,10 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
             print('delta2.T shape={}'.format(delta_out.T.shape))
             #print(delta2[:,None])
             #print(x_sigmoid[:,None])
+            print('l_out={} before updation'.format(l_out))
         l_out = np.add(l_out, np.outer(x_sigmoid_hl[nn.h_layers-1],lr*delta_out))#delta2.T * x_sigmoid)
         if dbg:
+            print('l_out={} after updation'.format(l_out))
             print('after updation l2 sum={}'.format(np.sum(l_out)))
 
             #delta1 = ((l2[:, neuron_i]).dot(error.T)).T * d_sigmoid(x_l1)
@@ -178,7 +199,9 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
         #l1 = np.add(l1, x.T @ delta1)
         #l1 = np.add(l1, (np.array(x_i).flatten()).T@delta1)
         l_in = np.add(l_in, np.outer(np.array(x_i).flatten(),lr*delta_in))
-
+        #exit(0)
+        print('l_out=',l_out)
+        #exit(0)
     return out,l_in,hl,l_out
 
 def predict(x,y,nn,l_in,hl,l_out,y_test,y_pred):
@@ -229,7 +252,7 @@ def predict(x,y,nn,l_in,hl,l_out,y_test,y_pred):
         predicted_num = np.argmax(out)
         if pred_dbg:
             #print('out shape={}'.format(out.shape))
-            #print('out={}'.format(out))
+            print('out={}'.format(out))
             print('predicted_num={} actual_num={}'.format(predicted_num,y[i]))
             #print('y_i={}'.format(y_i))
         y_pred.append(predicted_num)
@@ -264,7 +287,7 @@ def main():
     for epoch in range(0,total_epochs):
         print('epoch={}'.format(epoch))
         out,l_in,hl,l_out = forward_backward_pass(x_train,y_train,nn,l_in,hl,l_out)
-        #print('l2={}'.format(l2))
+        #print('l_out={}'.format(l_out))
 
     y_test = []
     y_pred = []
